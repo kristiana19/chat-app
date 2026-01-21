@@ -8,6 +8,8 @@ dotenv.config();
 
 const PORT = process.env.PORT;
 
+app.use(experss.json());
+
 app.use("/api/auth", authRouts);
 
 app.listen(PORT, () => {
