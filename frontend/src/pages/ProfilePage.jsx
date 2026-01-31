@@ -7,19 +7,49 @@ const ProfilePage = () => {
   const [selectedImg, setSelectedImg] = useState(null);
 
   const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const reader = new FileReader();
+  // Kreirajte canvas za optimizaciju
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
 
-    reader.readAsDataURL(file);
+  img.onload = async () => {
+    // Smanjite veličinu na maksimalno 300x300px
+    const maxSize = 300;
+    let { width, height } = img;
+    
+    if (width > height) {
+      if (width > maxSize) {
+        height = (height * maxSize) / width;
+        width = maxSize;
+      }
+    } else {
+      if (height > maxSize) {
+        width = (width * maxSize) / height;
+        height = maxSize;
+      }
+    }
 
-    reader.onload = async () => {
-      const base64Image = reader.result;
-      setSelectedImg(base64Image);
-      await updateProfile({ profilePic: base64Image });
-    };
+    canvas.width = width;
+    canvas.height = height;
+    
+    // Nacrtajte optimizovanu sliku
+    ctx.drawImage(img, 0, 0, width, height);
+    
+    // Konvertujte u base64 sa smanjenim kvalitetom (0.8 = 80%)
+    const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+    
+    setSelectedImg(base64Image);
+    await updateProfile({ profilePic: base64Image });
   };
+
+  img.src = URL.createObjectURL(file);
+};
+
+console.log("authUser:", authUser);
+console.log("authUser.profilePic:", authUser?.profilePic);
 
   return (
     <div className="h-screen pt-20">
