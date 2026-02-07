@@ -7,11 +7,20 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import { app, server } from "./lib/socket.js";
 import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
-const __dirname = path.resolve();
+
+// __dirname za ESM (type: "module")
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// frontend/dist je u: project-root/frontend/dist
+// a ovaj fajl je u: project-root/backend/src/index.js
+const distPath = path.resolve(__dirname, "..", "..", "frontend", "dist");
 
 app.use(express.json());
 app.use(cookieParser());
@@ -26,13 +35,18 @@ app.use(
 app.use("/api/auth", authRouts);
 app.use("/api/messages", messageRoutes);
 
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "frontend", "dist")));
+// ✅ Serviraj frontend samo ako postoji build (radi i bez NODE_ENV)
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
 
-  // Express 5 safe fallback
+  // Express 5-safe fallback za SPA
   app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, "frontend", "dist", "index.html"));
+    res.sendFile(path.join(distPath, "index.html"));
   });
+
+  console.log("Serving frontend from:", distPath);
+} else {
+  console.log("Frontend dist not found, skipping static serve. Looked at:", distPath);
 }
 
 server.listen(PORT, () => {
