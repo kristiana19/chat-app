@@ -1,6 +1,7 @@
 import cloudinary from "../lib/cloudinary.js";
 import User from "../models/user.model.js";
 import Message from "../models/message.model.js";
+import { getReceiverSocketId, io } from "../lib/socket.js";
 
 export const getUsersForSideBar = async(req, res) => {
     try {
@@ -22,8 +23,8 @@ export const getMessages = async(req, res) => {
 
         const messages = await Message.find({
             $or:[
-                {senderId:myId, recevierId:userToChatId},
-                {senderId:userToChatId, recevierId:myId}
+                {senderId:myId, receiverId:userToChatId},
+                {senderId:userToChatId, receiverId:myId}
             ]
         })
 
@@ -54,9 +55,14 @@ export const sendMessage = async(req, res) => {
             image: imageURL,
         });
 
-        // todo: realtime funcionality => socket.io
-
         await newMessage.save();
+
+        // realtime funcionality => socket.io
+        const receiverSocketID = getReceiverSocketId(receiverId); 
+        if(receiverSocketID) {
+            io.to(receiverSocketID).emit("newMessage", newMessage);
+        }
+       
 
         res.status(201).json(newMessage);
 
